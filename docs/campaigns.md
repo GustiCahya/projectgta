@@ -1,36 +1,28 @@
 # Daftar Kampanye Paid Clipping Aktif & Terverifikasi
 
-Dokumen ini mencatat kampanye clipping yang aktif, tarif pembayaran (RPM), sisa alokasi dana, serta aturan teknis yang dipahami oleh skrip validasi `scripts/check.py`.
+Dokumen ini mencatat kampanye clipping yang aktif, tarif pembayaran (RPM), sisa alokasi dana, serta aturan teknis dan kompatibilitasnya dengan akun utama `@funnyvicecitymoments`.
 
 ---
 
-## 1. Aturan Validasi Skrip Otomatis (`check.py`)
-Skrip `check.py` membaca baris parameter di bawah ini secara otomatis sebelum menyetujui video untuk diunggah:
+## 🎯 Status Verifikasi Kampanye (Update: 26 November 2026)
 
-* **min_seconds**: 15
-* **max_seconds**: 55
-* **required_hashtags**: #GTA6 #GTAVI #GamingClips
-* **required_mention**: @ContentRewards
-
----
-
-## 2. Tabel Kampanye Paid Clipping Terbuka (Live)
-
-| No | Nama Kampanye / Streamer | Platform | Tarif / 1K Views | Batas / Cap Reward | Status Budget | Link Sumber | Aturan Utama |
-|---|---|---|---|---|---|---|---|
-| 1 | **Whop Content Rewards (Gaming Pool)** | TikTok, Shorts, Reels | **$1,00 - $2,50** | Max $250 / video | Aktif (Pool Berjalan) | [Whop Discover](https://whop.com/discover/) | Wajib hook di 3 detik awal, resolusi 9:16, cantumkan sumber asli. |
-| 2 | **Clip.tech Creator Bounty** | TikTok, Instagram Reels | **$0,80 - $1,50** | Max $150 / video | Aktif (Rolling) | [Clip.tech Clippers](https://www.clip.tech/clippers) | Durasi 15-60s, akun publik, dilarang re-upload tanpa modifikasi teks/suara. |
-| 3 | **Community Streamer Bounties (Twitch/Kick)** | YouTube Shorts, TikTok | **$0,50 - $1,00** | Max $100 / video | Aktif | [Content Rewards](https://contentrewards.com/) | Khusus memotong momen reaksi lucu/fails streamer dengan tag akun resmi. |
+| Nama Kampanye | Platform | Tarif / 1K | Sisa Budget | Min Payout | Cap / Klip | Kompatibilitas Akun `@funnyvicecitymoments` | Dokumen Detail |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **GTA VI Lucia vs Fanvue AI Lucia** | TikTok, Reels | **\$1.50** | ~\$12.600 | \$1.50 (1K) | \$200 | 🟢 **Campaign Utama Aktif** (Bio terkunci `creatorinseconds.com`) | [Baca SOP](file:///d:/projects/ProjectGTA/docs/campaigns/gta-vi-lucia-vs-fanvue-ai-lucia.md) |
+| **BenDaDonnn x Puffco GTA 6** | TikTok, Reels, Shorts, X, FB | **\$1.00** | **\$8.672** | \$2.00 (2K) | \$400 | 🟢 **Bisa Dicombine** (Bebas bio link, multi-platform) | [Baca SOP](file:///d:/projects/ProjectGTA/docs/campaigns/bendadonnn-puffco-gta6.md) |
+| **8lanco 'Every Little Thing' Sound** | TikTok, Reels | **\$1.00** | **\$2.980** | \$2.00 (2K) | \$200 | 🟢 **Bisa Dicombine** (Bebas bio link, GTA 6 edit + sound 8lanco) | [Baca SOP](file:///d:/projects/ProjectGTA/docs/campaigns/8lanco-every-little-thing-sound.md) |
+| **DJ Tunez - GTA 6 Clipping** | Reels Saja | **\$1.00** | **\$3.727** | \$2.00 (2K) | \$400 | 🟢 **Bisa Dicombine** (Khusus Reels, bebas bio link, sepi saingan) | [Baca SOP](file:///d:/projects/ProjectGTA/docs/campaigns/dj-tunez-gta6-clipping.md) |
+| **Lauren Hamden GTA 6 Clipping** | Reels Saja | **\$1.50** | **\$4.174** | \$15.00 (10K) | \$250 | 🔴 **TIDAK BISA DICOMBINE** (Wajib bio link `lozzahamden.click` & akun fanpage khusus) | [Baca SOP](file:///d:/projects/ProjectGTA/docs/campaigns/lauren-hamden-gta6-clipping.md) |
 
 ---
 
-## 3. Checklist Kepatuhan Konten Sebelum Submit
+## 📋 Checklist Kepatuhan Konten Sebelum Submit
 
-- [ ] Durasi klip berada di antara 15 hingga 55 detik.
 - [ ] Format video vertikal 1080x1920 (9:16).
 - [ ] Subtitle dinamis dan jelas terlihat tanpa tertutup UI TikTok/Reels.
-- [ ] Bebas dari konten bocoran (*no leaks*), cheat ilegal (*mod menu*), dan materi bajakan.
-- [ ] Link postingan segera didaftarkan ke dashboard platform dalam waktu 24 jam setelah tayang.
+- [ ] Tidak bentrok aturan link bio dengan campaign yang sedang aktif di akun.
+- [ ] Menempelkan hook visual & teks di 3 detik pertama.
+- [ ] Submit link ke dashboard ContentRewards segera setelah tayang (maksimal 30 menit).
 
 ---
-*Terakhir diperbarui: 24 November 2026*
+*Terakhir diperbarui: 26 November 2026*
