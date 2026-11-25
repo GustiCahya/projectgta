@@ -399,8 +399,8 @@ def _ai_curate_candidates(vid, meta, picks):
         prompt = "\n".join(summary_lines) + (
             "\n\nRespond STRICTLY as valid JSON: "
             '{"best_n": <int>, "why_id": "<1 short sentence in Indonesian explaining why this moment is best>", '
-            '"title": "<punchy reaction headline <48 chars IN ENGLISH by default with 2-3 key CAPS words + 1 emoji, e.g. SPEED CANNOT BELIEVE GTA 6 GRAPHICS! 💀🔥. Zero typos. If streamer is English speaker like Speed, title MUST be in English>", '
-            '"hook": "<short opening hook <35 chars IN ENGLISH by default + 1 emoji, e.g. BRO LOST HIS MIND 💀>"}'
+            '"title": "<punchy reaction headline <48 chars IN ENGLISH by default using viral hook formulas (Curiosity Gap, Contrarian, or Pattern-Interrupt with 2-3 CAPS words + 1 emoji), e.g. SPEED CANNOT BELIEVE THIS IN GTA 6! 💀🔥. Zero typos. If streamer is English speaker like Speed, title MUST be in English>", '
+            '"hook": "<short opening hook <35 chars IN ENGLISH by default using viral hook psychology triggers (Curiosity Gap, Shock, or Story Open) + 1 emoji, e.g. NOBODY NOTICED THIS 💀>"}'
         )
         parts.append({"text": prompt})
 

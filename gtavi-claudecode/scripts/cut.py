@@ -248,14 +248,20 @@ def main():
     # Fallback hook: default to English unless video is strictly Indonesian
     if not a.hook:
         _id_hooks = ["GILA BANGET INI 💀", "NGAKAK PARAH 😭🔥", "GTA 6 GILA BANGET 🤯", "KOK BISA KAYAK GINI 😭"]
-        _en_hooks = ["NOBODY EXPECTED THIS 💀", "BRO LOST HIS MIND 😭", "HOW IS THIS REAL 🤯", "WAIT WHAT 😭🔥", "HE COULD NOT BELIEVE THIS 💀"]
+        try:
+            from viral_hooks import FALLBACK_VIRAL_HOOKS as _en_hooks
+        except Exception:
+            _en_hooks = ["NOBODY EXPECTED THIS 💀", "BRO LOST HIS MIND 😭", "HOW IS THIS REAL 🤯", "WAIT WHAT 😭🔥", "HE COULD NOT BELIEVE THIS 💀"]
         import random
         a.hook = random.choice(_id_hooks if _is_id else _en_hooks)
 
     # Fallback headline for react layout: default to English unless video is strictly Indonesian
     if not a.title and layout == 'react':
         _id_titles = ["REAKSI GILA DI GTA 6! 💀🔥", "MOMEN PALING KOCAK GTA 6 😭"]
-        _en_titles = ["SPEED CANNOT BELIEVE THIS! 💀🔥", "BRO WENT ABSOLUTELY CRAZY 😭💀", "BEST MOMENT IN GTA 6! 💀🔥"]
+        try:
+            from viral_hooks import FALLBACK_VIRAL_TITLES as _en_titles
+        except Exception:
+            _en_titles = ["SPEED CANNOT BELIEVE THIS! 💀🔥", "BRO WENT ABSOLUTELY CRAZY 😭💀", "BEST MOMENT IN GTA 6! 💀🔥"]
         import random
         a.title = random.choice(_id_titles if _is_id else _en_titles)
     layout, cam, side = a.layout, a.cam, 'right'
