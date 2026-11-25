@@ -106,6 +106,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         body = '\\N'.join(lines)
         if st == 'box':
             ev.append(f"Dialogue: 2,{ts(0)},{ts(end)},TitleBox,,0,0,0,,{{\\pos({W // 2},{ty})}}{body}")
+        elif st == 'pill':
+            ev.append(f"Dialogue: 2,{ts(0)},{ts(end)},Hook,,0,0,0,,{{\\pos({W // 2},{ty})\\an5}}{body}")
         else:
             ev.append(f"Dialogue: 2,{ts(0)},{ts(end)},TitleOut,,0,0,0,,{{\\pos({W // 2},{ty})\\an8}}{body}")
         hook = ''
@@ -207,6 +209,8 @@ def main():
     ap.add_argument("--hook", default="")
     ap.add_argument("--allow-profanity", action="store_true", help="keep swear words in captions (slurs are always masked)")
     ap.add_argument("--cam", default="auto", help="auto (find the webcam) or x:y:w:h fractions")
+    ap.add_argument("--endcard", default="", help="optional 3s black-bg endcard clip to Screen-blend onto the last 3s")
+    ap.add_argument("--endcard-y", type=int, default=0, help="vertical px offset for endcard (positive shifts down)")
     ap.add_argument("--start", type=float); ap.add_argument("--end", type=float)
     a = ap.parse_args()
     d = Path(a.job); c = load_json(d / "candidates.json")
@@ -227,7 +231,7 @@ def main():
 
     _id_markers = {"ternyata", "ada", "gila", "banget", "ngakak", "parah", "bisa", "kayak", "gini", "ini", "di", "yang", "gak", "nyangka", "apa", "kata", "kok", "sudah", "tamat", "kocak", "saat"}
     def _is_indonesian_text(s):
-        tokens = set(re.findall(r"[a-z]+", (s or "").lower()))
+        tokens = set(_re.findall(r"[a-z]+", (s or "").lower()))
         return bool(tokens & _id_markers)
 
     # Auto-fill hook/title from Gemini AI output in candidates.json if not passed on CLI
@@ -318,6 +322,9 @@ def main():
             title = ('box', a.title, TOP, a.title_secs)
         else:
             title = ('outline', a.title, TOP + 40, a.title_secs)
+    elif a.title:
+        ty = 310 if layout == 'blur' else 220
+        title = ('pill' if a.title_style == 'box' else 'outline', a.title, ty, a.title_secs)
     from common import ffprobe
     _probe = ffprobe(c['source'])
     src_dur = float(_probe.get('format', {}).get('duration', 0) or 0)
@@ -334,6 +341,20 @@ def main():
         src = (int(vs['width']), int(vs['height']))
         gx = game_offset(c['source'], s0, e0, src, [float(t) for t in cam.split(':')])
     v = video_filter(layout, cam, ass, band=band, cam_side=side, src=src, game_x=gx, face_expr=face_expr)
+    ec_inputs, ec_filt, out_pad = [], "", "[vo]"
+    if a.endcard:
+        ec_path = Path(a.endcard)
+        if not ec_path.exists():
+            sys.exit(f"endcard not found: {ec_path}")
+        ec_dur = float(ffprobe(ec_path).get("format", {}).get("duration", 0) or 3.0)
+        ec_start = max(0.0, cut_dur - ec_dur)
+        ey = a.endcard_y
+        ec_pos = f",pad={W}:{H + abs(ey)}:0:{max(0, ey)}:0x000000,crop={W}:{H}:0:{max(0, -ey)}" if ey else ""
+        ec_filt = (f";[1:v]scale={W}:{H},setsar=1,fps=30,format=gbrp{ec_pos},"
+                   f"tpad=start_duration={ec_start:.3f}:start_mode=add:color=0x000000,"
+                   f"trim=duration={cut_dur:.3f},setpts=PTS-STARTPTS[ec];"
+                   f"[vo]format=gbrp[vrgb];[vrgb][ec]blend=all_mode=screen:shortest=1,format=yuv420p[vout]")
+        ec_inputs, out_pad = ["-i", str(ec_path)], "[vout]"
     mp4 = out / f"clip_{a.pick}.mp4"
     tmp_mp4 = out / f"clip_{a.pick}.tmp.mp4"
     tmp_mp4.unlink(missing_ok=True)
@@ -341,7 +362,7 @@ def main():
     def _encode(filt):
         tmp_mp4.unlink(missing_ok=True)
         return run([tool("ffmpeg"), "-y", "-v", "error", "-ss", f"{s0:.2f}", "-t", f"{cut_dur:.2f}", "-i", c["source"],
-                    "-filter_complex", filt, "-map", "[vo]", "-map", "0:a?", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
+                    *ec_inputs, "-filter_complex", filt + ec_filt, "-map", out_pad, "-map", "0:a?", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
                     "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "2", "-pix_fmt", "yuv420p",
                     "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", str(tmp_mp4)],
                    check=False, capture=True)
@@ -359,7 +380,7 @@ def main():
         sys.exit(f"rendered clip truncated ({out_dur:.1f}s vs expected {cut_dur:.1f}s)")
     tmp_mp4.replace(mp4)
     info = c.get("info", {})
-    save_json(out / f"clip_{a.pick}.json", {"file": str(mp4), "start": s0, "end": e0, "duration": round(out_dur, 2), "layout": layout, "hook": a.hook or a.title, "title": a.title, "cam": cam,
+    save_json(out / f"clip_{a.pick}.json", {"file": str(mp4), "start": s0, "end": e0, "duration": round(out_dur, 2), "layout": layout, "hook": a.title or a.hook, "title": a.title, "cam": cam,
                                             "source_url": info.get("webpage_url"), "source_title": info.get("title"),
                                             "source_channel": info.get("channel") or info.get("uploader")})
     print(mp4)
