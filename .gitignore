@@ -1,0 +1,48 @@
+# Virtual environments & Python cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Sensitive credentials & cookies
+cookies.txt
+*.cookie
+*.cookies
+local_secrets.py
+.env
+.env.*
+!.env.example
+
+# Large video and audio files
+*.mp4
+*.mkv
+*.webm
+*.avi
+*.mov
+*.wav
+*.mp3
+*.flac
+*.aac
+*.ts
+!docs/*.mp4
+!gtavi-claudecode/docs/*.mp4
+
+# Job processing directories and scratch data
+jobs/
+**/jobs/
+scratch/
+**/scratch/
+data/
+**/data/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Bot runtime states
+*.session
+*.session-journal
+session_state.json
