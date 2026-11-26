@@ -88,7 +88,7 @@ class GTACoFounderBot:
             print(f"[download_file error]: {e}")
         return False
 
-    def send_video_card(self, chat_id: str, video_path: str, caption_text: str, credit: str = "", tags: str = "", job_id: str = "job", clip_name: str = "clip_1") -> bool:
+    def send_video_card(self, chat_id: str, video_path: str, caption_text: str, credit: str = "", tags: str = "", job_id: str = "job", clip_name: str = "clip_1", song_title: str = "", artist: str = "", song_start: str = "", campaign_url: str = "") -> bool:
         path = Path(video_path)
         if not path.exists():
             self.send_message(chat_id, f"❌ File video tidak ditemukan di: {safe_html(video_path)}")
@@ -97,14 +97,30 @@ class GTACoFounderBot:
         credit_tag = credit if credit else "@ContentRewards"
         tag_str = tags.strip() if tags.strip() else "#GTA6 #GTAVI #GamingClips"
         full_caption_raw = f"{caption_text[:200]}\n\nCredit: {credit_tag}\n{tag_str}"
+
+        music_block = ""
+        music_lines = []
+        if song_title:
+            music_lines.append(f"• Judul Lagu (1-Tap): <code>{safe_html(song_title)}</code>")
+        if artist:
+            music_lines.append(f"• Penyanyi (1-Tap): <code>{safe_html(artist)}</code>")
+        if song_start:
+            music_lines.append(f"• Menit di Video (Slider Audio): <code>{safe_html(song_start)}</code>")
+        if music_lines:
+            music_block = "\n\n🎵 <b>Info Musik / Audio Wajib:</b>\n" + "\n".join(music_lines)
+
+        url_block = f"\n\n🔗 <b>Link Submit:</b> {campaign_url}" if campaign_url else ""
+
         html_caption = (
             f"🎬 <b>Klip Siap Posting!</b>\n\n"
-            f"<i>Ketuk teks di dalam kotak bawah untuk langsung menyalin (1-Tap Copy):</i>\n\n"
-            f"<code>{safe_html(full_caption_raw)}</code>\n\n"
+            f"<i>Ketuk teks caption untuk langsung menyalin (1-Tap Copy):</i>\n\n"
+            f"<code>{safe_html(full_caption_raw)}</code>"
+            f"{music_block}"
+            f"{url_block}\n\n"
             f"⚡ <i>Buka TikTok / Reels di HP, upload video ini, paste caption di atas!</i>"
         )
         if len(html_caption) > 1000:
-            html_caption = f"🎬 <b>Klip Siap Posting!</b>\n\n<code>{safe_html(full_caption_raw[:850])}</code>"
+            html_caption = f"🎬 <b>Klip Siap Posting!</b>\n\n<code>{safe_html(full_caption_raw[:700])}</code>{music_block}{url_block}"
 
         inline_keyboard = {
             "inline_keyboard": [
