@@ -9,10 +9,19 @@ Usage:
 """
 import argparse
 import html
+import json
 import os
+import socket
+import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 import requests
+import urllib3.util.connection
+
+# Force IPv4 so Windows dual-stack networks do not stall mid-upload on IPv6 TLS sockets
+urllib3.util.connection.allowed_gai_family = lambda: socket.AF_INET
 
 try:
     from local_secrets import TELEGRAM_BOT_TOKEN as _LOCAL_TOKEN, TELEGRAM_CHAT_ID as _LOCAL_CHAT_ID
@@ -22,6 +31,58 @@ except ImportError:
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN") or _LOCAL_TOKEN
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID") or _LOCAL_CHAT_ID
+
+
+def _post_tg(endpoint: str, data: dict, file_path: Path = None, file_field: str = "", upload_name: str = ""):
+    url = f"https://api.telegram.org/bot{TOKEN}/{endpoint}"
+    for attempt in range(5):
+        cap_tmp = None
+        try:
+            if file_path is not None:
+                fname = upload_name or file_path.name
+                cmd = [
+                    "curl.exe", "-sS", "-4", "--http1.1",
+                    "--max-time", "600", "--speed-limit", "2048", "--speed-time", "45",
+                    "-w", "\n__STATS__:%{speed_upload}:%{time_total}",
+                ]
+                for k, v in data.items():
+                    if k == "caption":
+                        tf = tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False, suffix=".txt")
+                        tf.write(str(v))
+                        tf.close()
+                        cap_tmp = Path(tf.name)
+                        cmd += ["-F", f"caption=<{cap_tmp}"]
+                    else:
+                        cmd += ["-F", f"{k}={v}"]
+                cmd += ["-F", f"{file_field}=@{file_path.resolve()};filename={fname};type=video/mp4", url]
+                proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+                if proc.returncode != 0:
+                    raise RuntimeError(f"curl exit {proc.returncode}: {proc.stderr.strip()}")
+                body, _, stats = proc.stdout.rpartition("\n__STATS__:")
+                if stats.strip():
+                    spd, _, dur = stats.strip().partition(":")
+                    print(f"  [curl {endpoint}] {fname} -> {float(spd)/1024:.0f} KB/s in {float(dur):.1f}s")
+                res = json.loads(body)
+            else:
+                r = requests.post(url, data=data, headers={"Connection": "close"}, timeout=30)
+                res = r.json()
+        except (requests.RequestException, ValueError, RuntimeError) as exc:
+            wait_s = 5 * (attempt + 1)
+            print(f"Network/parse error on {endpoint} ({exc}), retrying in {wait_s}s...")
+            time.sleep(wait_s)
+            continue
+        finally:
+            if cap_tmp is not None:
+                cap_tmp.unlink(missing_ok=True)
+        if res.get("ok"):
+            return res
+        if res.get("error_code") == 429:
+            wait_s = int((res.get("parameters") or {}).get("retry_after", 10)) + 1
+            print(f"Telegram 429 on {endpoint}, waiting {wait_s}s...")
+            time.sleep(wait_s)
+            continue
+        return res
+    return {"ok": False, "description": "Max retries exceeded"}
 
 
 def send_clip(
@@ -34,7 +95,9 @@ def send_clip(
     campaign_url: str = "",
     as_document: bool = False,
     send_raw_document: bool = True,
-    guide_text: str = ""
+    guide_text: str = "",
+    preview_path: Path = None,
+    send_preview: bool = True,
 ) -> bool:
     if not video_path.exists():
         sys.exit(f"Video not found: {video_path}")
@@ -76,20 +139,17 @@ def send_clip(
 
     endpoint = "sendDocument" if as_document else "sendVideo"
     file_field = "document" if as_document else "video"
-    url = f"https://api.telegram.org/bot{TOKEN}/{endpoint}"
+    payload = {"chat_id": CHAT_ID, "caption": msg_caption, "parse_mode": "HTML"}
+    if not as_document:
+        payload["supports_streaming"] = "true"
 
-    with open(video_path, "rb") as vf:
-        payload = {"chat_id": CHAT_ID, "caption": msg_caption, "parse_mode": "HTML"}
-        if not as_document:
-            payload["supports_streaming"] = "true"
-        r = requests.post(url, data=payload, files={file_field: vf}, timeout=180)
-
-    res = r.json()
-    if not res.get("ok"):
-        print(f"{endpoint} failed: {res}", file=sys.stderr)
-        return False
-
-    print(f"Sent {video_path.name} via {endpoint} to Telegram chat {CHAT_ID}")
+    if send_preview:
+        vid_src = preview_path if (not as_document and preview_path and preview_path.exists()) else video_path
+        res = _post_tg(endpoint, payload, vid_src, file_field, upload_name=video_path.name)
+        if not res.get("ok"):
+            print(f"{endpoint} failed: {res}", file=sys.stderr)
+            return False
+        print(f"Sent {video_path.name} via {endpoint} to Telegram chat {CHAT_ID}")
 
     # Send raw uncompressed document right below preview so uploads to TikTok/IG never pixelate
     if not as_document and send_raw_document:
@@ -97,31 +157,28 @@ def send_clip(
             "📂 <b>File Master Asli (Tanpa Kompresi Telegram)</b>\n"
             "<i>Download/Simpan file ini untuk di-upload ke TikTok &amp; IG Reels agar gambar tajam &amp; tidak pecah!</i>"
         )
-        with open(video_path, "rb") as df:
-            r_doc = requests.post(
-                f"https://api.telegram.org/bot{TOKEN}/sendDocument",
-                data={"chat_id": CHAT_ID, "caption": doc_caption, "parse_mode": "HTML"},
-                files={"document": df},
-                timeout=180,
-            )
-        if not r_doc.json().get("ok"):
-            print(f"sendDocument raw failed: {r_doc.text}", file=sys.stderr)
-        else:
-            print(f"Sent raw document {video_path.name} via sendDocument ok!")
+        res_doc = _post_tg(
+            "sendDocument",
+            {"chat_id": CHAT_ID, "caption": doc_caption, "parse_mode": "HTML"},
+            video_path,
+            "document",
+            upload_name=video_path.name,
+        )
+        if not res_doc.get("ok"):
+            print(f"sendDocument raw failed: {res_doc}", file=sys.stderr)
+            return False
+        print(f"Sent raw document {video_path.name} via sendDocument ok!")
 
     if followup_needed and followup_text.strip():
-        r_msg = requests.post(
-            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-            data={
-                "chat_id": CHAT_ID,
-                "text": followup_text.strip(),
-                "parse_mode": "HTML",
-                "disable_web_page_preview": True
-            },
-            timeout=30
-        )
-        if not r_msg.json().get("ok"):
-            print(f"sendMessage followup failed: {r_msg.text}", file=sys.stderr)
+        res_msg = _post_tg("sendMessage", {
+            "chat_id": CHAT_ID,
+            "text": followup_text.strip(),
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True
+        })
+        if not res_msg.get("ok"):
+            print(f"sendMessage followup failed: {res_msg}", file=sys.stderr)
+            return False
 
     return True
 
