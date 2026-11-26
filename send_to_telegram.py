@@ -1,11 +1,11 @@
 """Send a finished vertical clip + 1-tap copyable caption directly to Telegram.
-Supports 1-tap copy song title, artist, audio start minute (slider position),
-and sending as uncompressed document to prevent quality loss.
+Automatically sends both the inline playable preview (sendVideo) and the raw
+uncompressed original MP4 file (sendDocument) so social uploads never lose quality.
 
 Usage:
     python send_to_telegram.py <video_path> --caption "Caption text #hashtags" [--credit "@Creator"]
                                 [--song-title "Title"] [--artist "Artist"] [--song-start "00:45"]
-                                [--campaign-url "https://..."] [--document]
+                                [--campaign-url "https://..."] [--no-document]
 """
 import argparse
 import html
@@ -33,6 +33,7 @@ def send_clip(
     song_start: str = "",
     campaign_url: str = "",
     as_document: bool = False,
+    send_raw_document: bool = True,
     guide_text: str = ""
 ) -> bool:
     if not video_path.exists():
@@ -68,7 +69,6 @@ def send_clip(
         followup_text += guide_text.strip()
 
     if len(msg_caption) > 1024:
-        # Split caption if it exceeds Telegram 1024 char video limit
         msg_caption = f"📋 <b>1-Tap Copy Caption:</b>\n<code>{html.escape(copy_text)}</code>"
         followup_needed = True
         music_guide = "\n🎵 <b>Info Musik / Audio Wajib:</b>\n" + "\n".join(music_lines) if music_lines else ""
@@ -90,6 +90,24 @@ def send_clip(
         return False
 
     print(f"Sent {video_path.name} via {endpoint} to Telegram chat {CHAT_ID}")
+
+    # Send raw uncompressed document right below preview so uploads to TikTok/IG never pixelate
+    if not as_document and send_raw_document:
+        doc_caption = (
+            "📂 <b>File Master Asli (Tanpa Kompresi Telegram)</b>\n"
+            "<i>Download/Simpan file ini untuk di-upload ke TikTok &amp; IG Reels agar gambar tajam &amp; tidak pecah!</i>"
+        )
+        with open(video_path, "rb") as df:
+            r_doc = requests.post(
+                f"https://api.telegram.org/bot{TOKEN}/sendDocument",
+                data={"chat_id": CHAT_ID, "caption": doc_caption, "parse_mode": "HTML"},
+                files={"document": df},
+                timeout=180,
+            )
+        if not r_doc.json().get("ok"):
+            print(f"sendDocument raw failed: {r_doc.text}", file=sys.stderr)
+        else:
+            print(f"Sent raw document {video_path.name} via sendDocument ok!")
 
     if followup_needed and followup_text.strip():
         r_msg = requests.post(
@@ -118,7 +136,8 @@ if __name__ == "__main__":
     ap.add_argument("--song-start", default="", help="Menit/detik audio dimulai pada video (posisi slider TikTok/Reels)")
     ap.add_argument("--campaign-url", default="", help="Link submit campaign ContentRewards/Whop")
     ap.add_argument("--guide", default="", help="Teks panduan tambahan")
-    ap.add_argument("--document", action="store_true", help="Kirim sebagai file dokumen asli tanpa kompresi")
+    ap.add_argument("--document", action="store_true", help="Kirim HANYA sebagai dokumen (tanpa preview video)")
+    ap.add_argument("--no-document", action="store_true", help="Jangan kirim salinan dokumen asli")
     args = ap.parse_args()
 
     success = send_clip(
@@ -130,6 +149,7 @@ if __name__ == "__main__":
         song_start=args.song_start,
         campaign_url=args.campaign_url,
         as_document=args.document,
+        send_raw_document=not args.no_document,
         guide_text=args.guide
     )
     if not success:

@@ -128,10 +128,10 @@ def even(n):
 def video_filter(layout, cam, ass, band=None, cam_side='right', src=None, game_x=None, face_expr=None):
     """Layout + burned-caption filter graph ending in [vo]. Reused by translate.py."""
     if layout == "fill":
-        v = f"[0:v]scale=-2:{H},crop={W}:{H}[v]"
+        v = f"[0:v]scale=-2:{H}:flags=lanczos,crop={W}:{H},unsharp=3:3:0.65:3:3:0.0[v]"
     elif layout == "blur":
         v = (f"[0:v]split[a][b];[a]scale=-2:{H},crop={W}:{H},boxblur=24:2,eq=brightness=-0.08[bg];"
-             f"[b]scale={W}:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2-80[v]")
+             f"[b]scale={W}:-2:flags=lanczos,unsharp=3:3:0.65:3:3:0.0[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2-80[v]")
     elif layout == 'react':
         sw, sh = src
         if face_expr:  # tracked face crop (no cam frame)
@@ -143,16 +143,16 @@ def video_filter(layout, cam, ass, band=None, cam_side='right', src=None, game_x
             top = f"crop={cw}:{chh}:{min(max(0, even(sw * x)), max(0, sw - cw))}:{min(max(0, even(sh * y)), max(0, sh - chh))}"
         gw = even(sw * GAME_H / sh) if sw * GAME_H / sh >= W else W
         gx = min(max(0, game_x if game_x is not None else ((gw - W) if cam_side == 'left' else 0)), max(0, gw - W))
-        v = (f"[0:v]split[a][b];[a]{top},scale={W}:{TOP}:force_original_aspect_ratio=increase,crop={W}:{TOP}:(iw-ow)/2:(ih-oh)/2,setsar=1[cam];"
-             f"[b]scale={gw}:{GAME_H},crop={W}:{GAME_H}:{even(gx)}:0,setsar=1[game];[cam][game]vstack[v]")
+        v = (f"[0:v]split[a][b];[a]{top},scale={W}:{TOP}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{TOP}:(iw-ow)/2:(ih-oh)/2,unsharp=3:3:0.75:3:3:0.0,setsar=1[cam];"
+             f"[b]scale={gw}:{GAME_H}:flags=lanczos,crop={W}:{GAME_H}:{even(gx)}:0,unsharp=3:3:0.55:3:3:0.0,setsar=1[game];[cam][game]vstack[v]")
         if band:
             y0, bh, secs = band
             en = f":enable='lte(t,{secs})'" if secs > 0 else ''
             v = v[:-3] + f"[v0];[v0]drawbox=x=0:y={y0}:w=iw:h={bh}:color=white@1:t=fill{en}[v]"
     else:
         x, y, w, h = map(float, cam.split(":"))
-        v = (f"[0:v]split[a][b];[a]crop=iw*{w}:ih*{h}:iw*{x}:ih*{y},scale={W}:{int(H * 0.38)}:force_original_aspect_ratio=increase,"
-             f"crop={W}:{int(H * 0.38)}:(iw-ow)/2:(ih-oh)/2[cam];[b]scale=-2:{H - int(H * 0.38)},crop={W}:{H - int(H * 0.38)}[game];[cam][game]vstack[v]")
+        v = (f"[0:v]split[a][b];[a]crop=iw*{w}:ih*{h}:iw*{x}:ih*{y},scale={W}:{int(H * 0.38)}:force_original_aspect_ratio=increase:flags=lanczos,"
+             f"crop={W}:{int(H * 0.38)}:(iw-ow)/2:(ih-oh)/2,unsharp=3:3:0.75:3:3:0.0[cam];[b]scale=-2:{H - int(H * 0.38)}:flags=lanczos,crop={W}:{H - int(H * 0.38)},unsharp=3:3:0.55:3:3:0.0[game];[cam][game]vstack[v]")
     sub = str(ass).replace("\\", "/").replace(":", "\\:")
     return v + f";[v]fps=30,subtitles='{sub}'[vo]"
 
@@ -363,8 +363,8 @@ def main():
         tmp_mp4.unlink(missing_ok=True)
         return run([tool("ffmpeg"), "-y", "-v", "error", "-ss", f"{s0:.2f}", "-t", f"{cut_dur:.2f}", "-i", c["source"],
                     *ec_inputs, "-filter_complex", filt + ec_filt, "-map", out_pad, "-map", "0:a?", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
-                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "2", "-pix_fmt", "yuv420p",
-                    "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", str(tmp_mp4)],
+                    "-c:v", "libx264", "-preset", "slow", "-crf", "17", "-threads", "2", "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", str(tmp_mp4)],
                    check=False, capture=True)
     r_ff = _encode(v)
     if r_ff.returncode != 0 and face_expr is not None:

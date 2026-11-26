@@ -153,6 +153,14 @@ class GTACoFounderBot:
                     r = requests.post(f"{self.api_url}/sendVideo", data=data, files={"video": vf}, timeout=240)
                     res = r.json()
                     if res.get("ok"):
+                        # Also send uncompressed raw document so social media uploads don't pixelate
+                        vf.seek(0)
+                        doc_data = {
+                            "chat_id": str(chat_id),
+                            "caption": "📂 <b>File Master Asli (Tanpa Kompresi Telegram)</b>\n<i>Download file ini untuk upload ke TikTok / Reels agar kualitas tetap tajam &amp; tidak pecah!</i>",
+                            "parse_mode": "HTML"
+                        }
+                        requests.post(f"{self.api_url}/sendDocument", data=doc_data, files={"document": vf}, timeout=240)
                         return True
                     print(f"[Telegram sendVideo failed]: {res}")
                     vf.seek(0)
