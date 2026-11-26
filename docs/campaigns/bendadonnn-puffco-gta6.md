@@ -39,8 +39,12 @@ Dokumen panduan resmi hasil verifikasi parameter & data ContentRewards untuk cam
 - **Hook & Edit:** Berikan hook teks di layar dan subtitle dinamis per kata (word-by-word) untuk menjaga retensi.
 
 ### 2. Sumber Bahan (Footage Source)
-- **Kanal YouTube / Streamer:** BenDaDonnn YouTube Live VODs & Kick/Twitch clips.
-- Contoh VOD resmi / klip yang sudah disubmit creator:
+- **Kanal Twitch Resmi:** https://www.twitch.tv/bendadonnn
+- **VOD Utama GTA 6 + Puffco:** https://www.twitch.tv/videos/2933247628 (*"IM IN GTA 6 🌴 BEST GAMEPLAY 🌴 LETS LOCK IN 🌴"*)
+- VOD GTA 6 Lainnya:
+  - https://www.twitch.tv/videos/2935891681
+  - https://www.twitch.tv/videos/2934225719
+- Contoh klip sukses dari creator lain (sebagai referensi gaya edit, **jangan re-upload ulang**):
   - `https://www.youtube.com/watch?v=664mCJTGTq0`
   - `https://www.youtube.com/watch?v=Csi8GFGM82E`
   - `https://www.youtube.com/watch?v=V6qVTxJeBvY`
